@@ -29,6 +29,7 @@ class WebSocketServer extends Command
      */
     public function handle()
     {
+        // Better to just use polling. Discard this.
         $server = IoServer::factory(
             new HttpServer(
                 new WsServer(

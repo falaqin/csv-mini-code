@@ -11,10 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
+        Schema::table('files_uploaded', function (Blueprint $table) {
+            $table->string('status')->after('stored_filename')->nullable()->default('Pending');
         });
     }
 
@@ -23,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('password_reset_tokens');
+        Schema::table('files_uploaded', function (Blueprint $table) {
+            $table->removeColumn('status');
+        });
     }
 };
