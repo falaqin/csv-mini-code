@@ -12,7 +12,7 @@ class FileController extends Controller
         $files = UploadedFile::all();
 
         // Use transformer
-        return $files;
+        return response()->json(['files' => $files]);
     }
 
     public function upload(Request $request)

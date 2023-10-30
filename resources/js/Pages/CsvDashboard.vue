@@ -37,34 +37,26 @@ const uploadFile = (file) => {
     })
 }
 
-// TODO Polling actual data
-let data = ref(null);
-let pollingTimer;
-const fetchUploadedFilesApi = () => {
-    // Make your API request here (use async/await or Promises as needed)
-    // For simplicity, this example uses a mock API request
-    setTimeout(() => {
-        data.value = "Updated data from the API";
-    }, 2000); // Simulate a 2-second API request
+const fetchUploadedFilesApi = async () => {
+    await axios.get(route('api.file.index')).then(response => {
+        files.value = response.data.files;
+    })
 };
 
+let pollingTimer;
 const startPolling = () => {
-    // Set the polling interval (e.g., every 5 seconds)
-    const pollingInterval = 3000; // 5 seconds in milliseconds
+    const pollingInterval = 3000;
 
     // Call the API initially
     fetchUploadedFilesApi();
-    console.log(data.value);
 
     // Set up the polling interval
     pollingTimer = setInterval(() => {
         fetchUploadedFilesApi();
-        console.log(data.value);
     }, pollingInterval);
 };
 
 onMounted(() => {
-    // Start polling when the component is mounted
     startPolling();
 });
 
