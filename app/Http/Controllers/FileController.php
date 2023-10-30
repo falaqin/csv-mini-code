@@ -9,7 +9,7 @@ class FileController extends Controller
 {
     public function index()
     {
-        $files = UploadedFile::all();
+        $files = UploadedFile::orderBy("id","desc")->get();
 
         // Use transformer
         return response()->json(['files' => $files]);

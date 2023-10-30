@@ -45,7 +45,7 @@ const fetchUploadedFilesApi = async () => {
 
 let pollingTimer;
 const startPolling = () => {
-    const pollingInterval = 3000;
+    const pollingInterval = 1000;
 
     // Call the API initially
     fetchUploadedFilesApi();

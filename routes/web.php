@@ -17,7 +17,7 @@ use Inertia\Inertia;
 */
 
 Route::get('/', function () {
-    $files = \App\Models\UploadedFile::all();
+    $files = \App\Models\UploadedFile::orderBy("id", "desc")->get();
     return Inertia::render('CsvDashboard', [
         'uploaded_files' => $files
     ]);

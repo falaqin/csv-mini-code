@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Product;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,12 +32,59 @@ class ProcessCsvFile implements ShouldQueue
         $fileContents = storage_path('app/' . $this->file);
         $data = $this->parse($fileContents);
 
-        // TODO after getting the data, use transform to parse the data to required array keys
+        // Update the status to processing
+        $uploadedFile = \App\Models\UploadedFile::where('stored_filename', $this->file)
+            ->lockForUpdate()
+            ->first();
 
-        // TODO save the content to database
-        // When saving the content to database, use lockForUpdate method to handle race
+        // Check if the file is in processing/completed state. If so, don't execute.
+        if (
+            $uploadedFile->status != \App\Enums\FileStatus::PROCESSING->value ||
+            $uploadedFile->status != \App\Enums\FileStatus::COMPLETED->value
+        )
+        {
+            $uploadedFile->status = \App\Enums\FileStatus::PROCESSING->value;
+            $uploadedFile->save();
+        } else {
+            return;
+        }
 
-        // TODO save the uploaded file status to completed if nothing goes wrong
+        \DB::transaction(function () use ($data, &$uploadedFile) {
+            try {
+                for ($i = 0; $i < count($data); $i++) {
+                    $content = $data[$i];
+                    $toBeFilled = [
+                        'id' => $content['UNIQUE_KEY'],
+                        'title' => $content['PRODUCT_TITLE'],
+                        'description' => $content['PRODUCT_DESCRIPTION'],
+                        'style' => $content['STYLE#'],
+                        'sanmar_mainframe_color' => $content['SANMAR_MAINFRAME_COLOR'],
+                        'size' => $content['SIZE'],
+                        'color_name' => $content['COLOR_NAME'],
+                        'piece_price' => $content['PIECE_PRICE'],
+                    ];
+
+                    $product = Product::lockForUpdate()->find($content['UNIQUE_KEY']);
+                    if (!$product) {
+                        $product = Product::create($toBeFilled);
+                    } else {
+                        $product->fill($toBeFilled);
+
+                        if ($product->isDirty()) {
+                            $product->save();
+                        }
+                    }
+                }
+
+                // Save the uploaded file status to completed if nothing goes wrong
+                $uploadedFile->status = \App\Enums\FileStatus::COMPLETED->value;
+                $uploadedFile->save();
+            } catch (\Exception $e) {
+                \Log::error($e->getMessage());
+                $uploadedFile->status = \App\Enums\FileStatus::FAILED->value;
+                $uploadedFile->save();
+            }
+        });
     }
 
     private function parse($csv, $delimiter = ',')
