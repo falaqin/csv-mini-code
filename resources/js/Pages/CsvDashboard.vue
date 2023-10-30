@@ -4,6 +4,7 @@ import axios from 'axios';
 import NoAuthLayout from '@/Layouts/NoAuthLayout.vue';
 import DropFile from '@/Components/DropFile.vue';
 import Table from '@/Components/Table.vue';
+import Toast from '@/Components/Toast.vue';
 
 const props = defineProps({
     uploaded_files: {
@@ -12,6 +13,7 @@ const props = defineProps({
 })
 
 let files = ref(props.uploaded_files);
+let message = ref('');
 const newFilesIncoming = (newFile) => {
     uploadFile(newFile);
 }
@@ -33,7 +35,7 @@ const uploadFile = (file) => {
 
     }).then(response => {
         // TODO Show toast or indicator as the file has been uploaded
-        console.log(response);
+        message.value = response.data.message;
     })
 }
 
@@ -66,11 +68,18 @@ onBeforeUnmount(() => {
         clearInterval(pollingTimer);
     }
 });
+
+const closeToast = () => {
+    message.value = '';
+}
 </script>
 
 <template>
     <NoAuthLayout>
         <DropFile @update:files="newFilesIncoming"/>
+        <template v-if="message">
+            <Toast :message="message" @close="closeToast"/>
+        </template>
         <div class="grid place-items-center">
             <Table :items="files" class="mt-6"/>
         </div>
