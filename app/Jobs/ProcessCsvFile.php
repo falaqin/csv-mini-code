@@ -91,7 +91,7 @@ class ProcessCsvFile implements ShouldQueue
             $uploadedFile->save();
         } catch (\Exception $e) {
             \Log::error($e->getMessage());
-            // Don't change the completion percentage, it will be useful for debugging purposes.
+            // Don't change the completion percentage, it might be useful for debugging purposes.
             $uploadedFile->status = FileStatus::FAILED->value;
             $uploadedFile->save();
         }
