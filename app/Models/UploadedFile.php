@@ -17,5 +17,8 @@ class UploadedFile extends Model
         'unique_id',
         'original_filename',
         'stored_filename',
+        'stored_filesize',
+        'stored_filehash',
+        'completion_percentage',
     ];
 }

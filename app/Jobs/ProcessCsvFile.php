@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Product;
+use App\Enums\FileStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -39,19 +40,20 @@ class ProcessCsvFile implements ShouldQueue
 
         // Check if the file is in processing/completed state. If so, don't execute.
         if (
-            $uploadedFile->status != \App\Enums\FileStatus::PROCESSING->value ||
-            $uploadedFile->status != \App\Enums\FileStatus::COMPLETED->value
+            $uploadedFile->status != FileStatus::PROCESSING->value ||
+            $uploadedFile->status != FileStatus::COMPLETED->value
         )
         {
-            $uploadedFile->status = \App\Enums\FileStatus::PROCESSING->value;
+            $uploadedFile->status = FileStatus::PROCESSING->value;
             $uploadedFile->save();
         } else {
-            return;
+            $this->job->delete();
         }
 
-        \DB::transaction(function () use ($data, &$uploadedFile) {
-            try {
-                for ($i = 0; $i < count($data); $i++) {
+        try {
+            $totalData = count($data);
+            for ($i = 0; $i < $totalData; $i++) {
+                \DB::transaction(function () use ($data, &$i) {
                     $content = $data[$i];
                     $toBeFilled = [
                         'id' => $content['UNIQUE_KEY'],
@@ -74,17 +76,27 @@ class ProcessCsvFile implements ShouldQueue
                             $product->save();
                         }
                     }
-                }
+                });
 
-                // Save the uploaded file status to completed if nothing goes wrong
-                $uploadedFile->status = \App\Enums\FileStatus::COMPLETED->value;
-                $uploadedFile->save();
-            } catch (\Exception $e) {
-                \Log::error($e->getMessage());
-                $uploadedFile->status = \App\Enums\FileStatus::FAILED->value;
-                $uploadedFile->save();
+                // We save the percentage of completion into uploadedFile model
+                $percentage = round((($i + 1) / $totalData) * 100, 2);
+                $uploadedFile->completion_percentage = $percentage;
+                if ($uploadedFile->isDirty()) {
+                    $uploadedFile->save();
+                }
             }
-        });
+
+            // Save the uploaded file status to completed if nothing goes wrong
+            $uploadedFile->status = FileStatus::COMPLETED->value;
+            $uploadedFile->save();
+        } catch (\Exception $e) {
+            \Log::error($e->getMessage());
+            // Don't change the completion percentage, it will be useful for debugging purposes.
+            $uploadedFile->status = FileStatus::FAILED->value;
+            $uploadedFile->save();
+        }
+
+        $this->job->delete();
     }
 
     private function parse($csv, $delimiter = ',')
