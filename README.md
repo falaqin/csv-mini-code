@@ -10,7 +10,7 @@ composer update
 bun install
 ```
 
-Create a dotEnv file by executing `touch .env` inside of the root project if you are using Unix system.
+Create a dotEnv file by executing `cp .env.example .env` inside of the root project if you are using Unix system, then run `php artisan key:generate`
 
 Run `php artisan migrate` to migrate all the required tables.
 
